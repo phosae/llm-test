@@ -26,6 +26,7 @@ func main() {
 		Messages: []*model.ChatCompletionMessage{
 			{
 				Role: model.ChatMessageRoleSystem,
+				// Role: "developer",
 				Content: &model.ChatCompletionMessageContent{
 					StringValue: volcengine.String("你是世界上最棒的人工智能助手"),
 				},
@@ -63,11 +64,16 @@ func main() {
 			},
 		},
 	}
+	fmt.Println("--------------------------------")
+	fmt.Println("Round 1 request", string(MustMarshal(req)))
 	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		fmt.Printf("chat error: %v\n", err)
 		return
 	}
+	fmt.Println("Round 1 response choices", string(MustMarshal(resp.Choices)))
+	fmt.Println("--------------------------------")
+
 	// extend conversation with assistant's reply
 	req.Messages = append(req.Messages, &resp.Choices[0].Message)
 
@@ -95,14 +101,16 @@ func main() {
 			},
 		)
 	}
+
+	fmt.Println("--------------------------------")
+	fmt.Println("Round 2 ReqMessages", MustMarshal(req.Messages))
 	// get a new response from the model where it can see the function response
 	secondResp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		fmt.Printf("second chat error: %v\n", err)
+		fmt.Printf("second chat error: %v, resp: %v\n", err, secondResp)
 		return
 	}
-	fmt.Println("conversation", MustMarshal(req.Messages))
-	fmt.Println("new message", MustMarshal(secondResp.Choices[0].Message))
+	fmt.Println("Round 2 RespChoice", MustMarshal(secondResp.Choices))
 }
 func CallAvailableFunctions(name, arguments string) (string, error) {
 	if name == "get_current_weather" {
@@ -128,18 +136,18 @@ func GetCurrentWeather(location, unit string) string {
 	}
 	switch strings.ToLower(location) {
 	case "beijing":
-		return `{"location": "Beijing", "temperature": "10", "unit": unit}`
+		return `{"location": "Beijing", "temperature": "5", "unit": unit}`
 	case "北京":
-		return `{"location": "Beijing", "temperature": "10", "unit": unit}`
+		return `{"location": "Beijing", "temperature": "5", "unit": unit}`
 	case "shanghai":
-		return `{"location": "Shanghai", "temperature": "23", "unit": unit})`
+		return `{"location": "Shanghai", "temperature": "13", "unit": unit})`
 	case "上海":
-		return `{"location": "Shanghai", "temperature": "23", "unit": unit})`
+		return `{"location": "Shanghai", "temperature": "13", "unit": unit})`
 	default:
 		return fmt.Sprintf(`{"location": %s, "temperature": "unknown"}`, location)
 	}
 }
 func MustMarshal(v interface{}) string {
-	b, _ := json.Marshal(v)
+	b, _ := json.MarshalIndent(v, "", "  ")
 	return string(b)
 }
