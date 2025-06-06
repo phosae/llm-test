@@ -7,41 +7,28 @@ import (
 	"os"
 	"strings"
 
-	"github.com/volcengine/volcengine-go-sdk/service/arkruntime"
-	"github.com/volcengine/volcengine-go-sdk/service/arkruntime/model"
-	"github.com/volcengine/volcengine-go-sdk/volcengine"
+	"github.com/sashabaranov/go-openai"
 )
 
-func main() {
-	client := arkruntime.NewClientWithApiKey(
-		os.Getenv("API_KEY"),
-		arkruntime.WithBaseUrl(os.Getenv("BASE_URL")),
-	)
-
-	fmt.Println("----- function call mulstiple rounds request -----")
-	ctx := context.Background()
+func function(ctx context.Context, client *openai.Client) {
+	fmt.Println("----- function call multiple rounds request -----")
 	// Step 1: send the conversation and available functions to the model
-	req := model.CreateChatCompletionRequest{
+	req := openai.ChatCompletionRequest{
 		Model: os.Getenv("MODEL"),
-		Messages: []*model.ChatCompletionMessage{
+		Messages: []openai.ChatCompletionMessage{
 			{
-				Role: model.ChatMessageRoleSystem,
-				// Role: "developer",
-				Content: &model.ChatCompletionMessageContent{
-					StringValue: volcengine.String("你是世界上最棒的人工智能助手"),
-				},
+				Role:    openai.ChatMessageRoleSystem,
+				Content: "You're the best assistant in the world",
 			},
 			{
-				Role: model.ChatMessageRoleUser,
-				Content: &model.ChatCompletionMessageContent{
-					StringValue: volcengine.String("北京的天气怎么样？"),
-				},
+				Role:    openai.ChatMessageRoleUser,
+				Content: "What's the weather like in Beijing today?",
 			},
 		},
-		Tools: []*model.Tool{
+		Tools: []openai.Tool{
 			{
-				Type: model.ToolTypeFunction,
-				Function: &model.FunctionDefinition{
+				Type: openai.ToolTypeFunction,
+				Function: &openai.FunctionDefinition{
 					Name:        "get_current_weather",
 					Description: "Get the current weather in a given location",
 					Parameters: map[string]interface{}{
@@ -53,7 +40,8 @@ func main() {
 							},
 							"unit": map[string]interface{}{
 								"type":        "string",
-								"description": "枚举值有celsius、fahrenheit",
+								"enum":        []string{"celsius", "fahrenheit"},
+								"description": "Units the temperature will be returned in.",
 							},
 						},
 						"required": []string{
@@ -64,6 +52,7 @@ func main() {
 			},
 		},
 	}
+
 	fmt.Println("--------------------------------")
 	fmt.Println("Round 1 request", string(MustMarshal(req)))
 	resp, err := client.CreateChatCompletion(ctx, req)
@@ -75,7 +64,7 @@ func main() {
 	fmt.Println("--------------------------------")
 
 	// extend conversation with assistant's reply
-	req.Messages = append(req.Messages, &resp.Choices[0].Message)
+	req.Messages = append(req.Messages, resp.Choices[0].Message)
 
 	// Step 2: check if the model wanted to call a function.
 	// The model can choose to call one or more functions; if so,
@@ -92,12 +81,10 @@ func main() {
 		}
 		// extend conversation with function response
 		req.Messages = append(req.Messages,
-			&model.ChatCompletionMessage{
-				Role:       model.ChatMessageRoleTool,
+			openai.ChatCompletionMessage{
+				Role:       openai.ChatMessageRoleTool,
+				Content:    functionResponse,
 				ToolCallID: toolCall.ID,
-				Content: &model.ChatCompletionMessageContent{
-					StringValue: &functionResponse,
-				},
 			},
 		)
 	}
@@ -112,6 +99,7 @@ func main() {
 	}
 	fmt.Println("Round 2 RespChoice", MustMarshal(secondResp.Choices))
 }
+
 func CallAvailableFunctions(name, arguments string) (string, error) {
 	if name == "get_current_weather" {
 		params := struct {
@@ -136,17 +124,18 @@ func GetCurrentWeather(location, unit string) string {
 	}
 	switch strings.ToLower(location) {
 	case "beijing":
-		return `{"location": "Beijing", "temperature": "5", "unit": unit}`
+		return `{"location": "Beijing", "temperature": "5", "unit": "` + unit + `"}`
 	case "北京":
-		return `{"location": "Beijing", "temperature": "5", "unit": unit}`
+		return `{"location": "Beijing", "temperature": "5", "unit": "` + unit + `"}`
 	case "shanghai":
-		return `{"location": "Shanghai", "temperature": "13", "unit": unit})`
+		return `{"location": "Shanghai", "temperature": "13", "unit": "` + unit + `"}`
 	case "上海":
-		return `{"location": "Shanghai", "temperature": "13", "unit": unit})`
+		return `{"location": "Shanghai", "temperature": "13", "unit": "` + unit + `"}`
 	default:
-		return fmt.Sprintf(`{"location": %s, "temperature": "unknown"}`, location)
+		return fmt.Sprintf(`{"location": "%s", "temperature": "unknown"}`, location)
 	}
 }
+
 func MustMarshal(v interface{}) string {
 	b, _ := json.MarshalIndent(v, "", "  ")
 	return string(b)
