@@ -13,7 +13,7 @@ import (
 func main() {
 	// Define command-line flags
 	var (
-		testTypes = flag.String("test", "", "Test types: f(unction), v(ision). Use comma-separated for multiple: f,v")
+		testTypes = flag.String("test", "", "Test types: f(unction), v(ision), s(tream). Use comma-separated for multiple: f,v,s")
 		showHelp  = flag.Bool("h", false, "Show help")
 	)
 
@@ -23,12 +23,13 @@ func main() {
 	if *showHelp {
 		fmt.Println("Usage: go run . [flags]")
 		fmt.Println("\nFlags:")
-		fmt.Println("  -test string    Test types: f(unction), v(ision)")
-		fmt.Println("                  Examples: -test f    (function only)")
-		fmt.Println("                           -test v    (vision only)")
-		fmt.Println("                           -test f,v  (both)")
+		fmt.Println("  -test string    Test types: f(unction), v(ision), s(tream)")
+		fmt.Println("                  Examples: -test f      (function only)")
+		fmt.Println("                           -test v      (vision only)")
+		fmt.Println("                           -test s      (stream only)")
+		fmt.Println("                           -test f,v,s  (all)")
 		fmt.Println("  -h              Show this help message")
-		fmt.Println("\nDefault behavior (no -test flag): Test both function and vision")
+		fmt.Println("\nDefault behavior (no -test flag): Test all features")
 		fmt.Println("\nEnvironment Variables:")
 		fmt.Println("  API_KEY     - Your API key")
 		fmt.Println("  BASE_URL    - Custom base URL (optional)")
@@ -37,12 +38,13 @@ func main() {
 	}
 
 	// Parse test types
-	var shouldTestFunction, shouldTestVision bool
+	var shouldTestFunction, shouldTestVision, shouldTestStream bool
 
 	if *testTypes == "" {
-		// Default: test both
+		// Default: test all
 		shouldTestFunction = true
 		shouldTestVision = true
+		shouldTestStream = true
 	} else {
 		// Parse comma-separated values
 		types := strings.Split(strings.ToLower(*testTypes), ",")
@@ -53,9 +55,11 @@ func main() {
 				shouldTestFunction = true
 			case "v", "vision":
 				shouldTestVision = true
+			case "s", "stream":
+				shouldTestStream = true
 			default:
 				fmt.Printf("Unknown test type: %s\n", t)
-				fmt.Println("Valid types: f(unction), v(ision)")
+				fmt.Println("Valid types: f(unction), v(ision), s(tream)")
 				return
 			}
 		}
@@ -79,5 +83,14 @@ func main() {
 		}
 		fmt.Println("👁️  Testing Vision API...")
 		vision(ctx, client)
+	}
+
+	// Test streaming
+	if shouldTestStream {
+		if shouldTestFunction || shouldTestVision {
+			fmt.Println("\n" + strings.Repeat("=", 50))
+		}
+		fmt.Println("🌊 Testing Stream API...")
+		stream(ctx, client)
 	}
 }
