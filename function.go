@@ -10,6 +10,23 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+// requestToCurl converts a ChatCompletionRequest to a runnable cURL command
+func requestToCurl(req openai.ChatCompletionRequest) string {
+	apiKey := os.Getenv("API_KEY")
+	baseURL := os.Getenv("BASE_URL")
+
+	// Marshal the request body
+	body, _ := json.MarshalIndent(req, "", "  ")
+
+	// Construct the cURL command
+	curl := fmt.Sprintf(`curl -X POST %s/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer %s" \
+  -d '%s'`, baseURL, apiKey, string(body))
+
+	return curl
+}
+
 func function(ctx context.Context, client *openai.Client) {
 	fmt.Println("----- function call multiple rounds request -----")
 	// Step 1: send the conversation and available functions to the model
@@ -18,11 +35,11 @@ func function(ctx context.Context, client *openai.Client) {
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: "You're the best assistant in the world",
+				Content: "You are the best assistant in the world",
 			},
 			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: "What's the weather like in Beijing today?",
+				Content: "What is the weather like in Beijing today?",
 			},
 		},
 		Tools: []openai.Tool{
@@ -58,6 +75,8 @@ func function(ctx context.Context, client *openai.Client) {
 	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		fmt.Printf("chat error: %v\n", err)
+		fmt.Println("\nRunnable cURL command for debugging:")
+		fmt.Println(requestToCurl(req))
 		return
 	}
 	fmt.Println("Round 1 response choices", string(MustMarshal(resp.Choices)))
@@ -95,6 +114,8 @@ func function(ctx context.Context, client *openai.Client) {
 	secondResp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		fmt.Printf("second chat error: %v, resp: %v\n", err, secondResp)
+		fmt.Println("\nRunnable cURL command for debugging:")
+		fmt.Println(requestToCurl(req))
 		return
 	}
 	fmt.Println("Round 2 RespChoice", MustMarshal(secondResp.Choices))
