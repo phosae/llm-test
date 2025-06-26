@@ -1,4 +1,4 @@
-module github.com/phosae/openai-function-call-test
+module github.com/phosae/llm-test
 
 go 1.24.1
 
