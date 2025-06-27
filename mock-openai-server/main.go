@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	port = flag.Int("port", 8888, "Port to listen on")
+	port       = flag.Int("port", 8888, "Port to listen on")
+	fixedDelay = flag.Duration("delay", 0, "delay the response by this duration")
 )
 
 type ChatCompletionRequest struct {
@@ -89,6 +90,8 @@ func handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("Invalid delay format: %v", err), http.StatusBadRequest)
 			return
 		}
+	} else if *fixedDelay > 0 {
+		delay = *fixedDelay
 	}
 
 	// Parse request body
@@ -265,7 +268,7 @@ func main() {
 	})
 
 	addr := ":" + strconv.Itoa(*port)
-	log.Printf("Starting mock OpenAI API server on %s", addr)
+	log.Printf("Starting mock OpenAI API server on %s, fixed delay: %v", addr, *fixedDelay)
 	log.Printf("Available endpoints:")
 	log.Printf("  POST /chat/completions")
 	log.Printf("  POST /v1/chat/completions")
