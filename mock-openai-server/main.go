@@ -70,8 +70,42 @@ type ChunkChoice struct {
 	FinishReason *string `json:"finish_reason,omitempty"`
 }
 
+type ErrorResponse struct {
+	Error struct {
+		Message string `json:"message"`
+		Code    string `json:"code"`
+	} `json:"error"`
+}
+
 func parseDelay(delayStr string) (time.Duration, error) {
 	return time.ParseDuration(strings.ToLower(delayStr))
+}
+
+var ErrorModels = map[int]string{
+	400: "Your credit balance is too low to access the API",
+	403: "Your account has an outstanding balance. Please settle it to regain access.",
+	429: "You exceeded your current quota, please check your plan and billing details.",
+	500: "Internal server error",
+	503: "The server is currently unavailable",
+}
+
+func MapError(code int, errMsg string) ErrorResponse {
+	var codeStr = strconv.Itoa(code)
+	if code >= 400 && code < 500 {
+		codeStr = "rate_limit_exceeded"
+	}
+	if code >= 500 {
+		codeStr = "server_error"
+	}
+	return ErrorResponse{
+		Error: struct {
+			Message string `json:"message"`
+			Code    string `json:"code"`
+		}{
+			Message: errMsg,
+			Code:    codeStr,
+		},
+	}
 }
 
 func handleChatCompletions(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +133,18 @@ func handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
 		return
+	}
+
+	// Log request information
+	log.Printf("Request received - RemoteAddr: %s, Method: %s, URL: %s, Model: %s", r.RemoteAddr, r.Method, r.URL.String(), req.Model)
+
+	if code, err := strconv.Atoi(req.Model); err == nil {
+		if errMsg, ok := ErrorModels[code]; ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(code)
+			json.NewEncoder(w).Encode(MapError(code, errMsg))
+			return
+		}
 	}
 
 	// Set default model if not provided
