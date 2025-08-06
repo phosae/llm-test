@@ -24,7 +24,8 @@ func stream(ctx context.Context, client *openai.Client) {
 				Content: "从《金瓶梅》《红楼梦》《水浒传》来看，人生的意义是什么？",
 			},
 		},
-		Stream: true,
+		MaxTokens: 8192,
+		Stream:    true,
 	}
 
 	fmt.Println("Streaming request:")

@@ -24,7 +24,12 @@ func vision(ctx context.Context, client *openai.Client) {
 
 func testVisionBase64(ctx context.Context, client *openai.Client) {
 	// Read and encode the image to base64
-	imageData, err := readImageAsBase64("lightning-bolts.jpg")
+
+	imgPath := "./kodata/lightning-bolts.jpg"
+	if koDataDir := os.Getenv("KO_DATA_PATH"); koDataDir != "" {
+		imgPath = fmt.Sprintf("%s/lightning-bolts.jpg", koDataDir)
+	}
+	imageData, err := readImageAsBase64(imgPath)
 	if err != nil {
 		fmt.Printf("Error reading image: %v\n", err)
 		return
@@ -50,7 +55,7 @@ func testVisionBase64(ctx context.Context, client *openai.Client) {
 				},
 			},
 		},
-		MaxTokens: 500,
+		MaxTokens: 4096,
 	}
 
 	resp, err := client.CreateChatCompletion(ctx, req)
@@ -89,7 +94,7 @@ func testVisionURL(ctx context.Context, client *openai.Client) {
 				},
 			},
 		},
-		MaxTokens: 500,
+		MaxTokens: 4096,
 	}
 
 	fmt.Println("URL Request:")

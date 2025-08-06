@@ -58,7 +58,7 @@ func function(ctx context.Context, client *openai.Client) {
 							"unit": map[string]interface{}{
 								"type":        "string",
 								"enum":        []string{"celsius", "fahrenheit"},
-								"description": "Units the temperature will be returned in.",
+								"description": "Units the temperature will be returned in, default is celsius",
 							},
 						},
 						"required": []string{
