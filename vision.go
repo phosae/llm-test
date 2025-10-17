@@ -55,7 +55,6 @@ func testVisionBase64(ctx context.Context, client *openai.Client) {
 				},
 			},
 		},
-		MaxTokens: 4096,
 	}
 
 	resp, err := client.CreateChatCompletion(ctx, req)
@@ -94,7 +93,6 @@ func testVisionURL(ctx context.Context, client *openai.Client) {
 				},
 			},
 		},
-		MaxTokens: 4096,
 	}
 
 	fmt.Println("URL Request:")
