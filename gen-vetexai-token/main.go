@@ -40,11 +40,6 @@ type ADCConfig struct {
 }
 
 func main() {
-	// Set proxy environment variables (optional)
-	os.Setenv("https_proxy", "http://127.0.0.1:7890")
-	os.Setenv("http_proxy", "http://127.0.0.1:7890")
-	os.Setenv("all_proxy", "socks5://127.0.0.1:7890")
-
 	// Read ADC file path from command line argument or use default
 	adcFilePath := "adc.json"
 	if len(os.Args) > 1 {
