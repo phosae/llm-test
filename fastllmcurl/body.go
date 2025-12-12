@@ -10,13 +10,13 @@ import (
 )
 
 func LoadCaseBody(casesDir, caseName, reqType string) (map[string]interface{}, error) {
-	caseFile := filepath.Join(casesDir, caseName, reqType)
+	caseFile := filepath.Join(casesDir, caseName, reqType+".json")
 	data, err := os.ReadFile(caseFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			homeDir, homeErr := os.UserHomeDir()
 			if homeErr == nil {
-				homeCaseFile := filepath.Join(homeDir, ".llm-test", "cases", caseName, reqType)
+				homeCaseFile := filepath.Join(homeDir, ".llm-test", "cases", caseName, reqType+".json")
 				data, err = os.ReadFile(homeCaseFile)
 				if err != nil {
 					return nil, fmt.Errorf("failed to read case file, tried:\n  - %s\n  - %s", caseFile, homeCaseFile)
