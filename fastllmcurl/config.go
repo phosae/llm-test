@@ -15,6 +15,7 @@ type PathConfig struct {
 	Message      string `yaml:"message"`
 	Gemini       string `yaml:"gemini"`
 	GeminiStream string `yaml:"gemini_stream"`
+	Response     string `yaml:"response"`
 }
 
 type Provider struct {
@@ -49,6 +50,7 @@ var builtinProviders = map[string]*Provider{
 			Message:      "anthropic/v1/messages",
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
+			Response:     "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -73,6 +75,7 @@ var builtinProviders = map[string]*Provider{
 			Message:      "anthropic/v1/messages",
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
+			Response:     "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -97,6 +100,7 @@ var builtinProviders = map[string]*Provider{
 			Message:      "anthropic/v1/messages",
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
+			Response:     "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -121,6 +125,7 @@ var builtinProviders = map[string]*Provider{
 			Message:      "anthropic/v1/messages",
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
+			Response:     "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -145,6 +150,7 @@ var builtinProviders = map[string]*Provider{
 			Message:      "{model}/v1/messages",
 			Gemini:       "{model}:generateContent",
 			GeminiStream: "{model}:streamGenerateContent",
+			Response:     "{model}/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -222,6 +228,9 @@ func mergeProvider(dst, src *Provider) {
 	}
 	if src.Path.GeminiStream != "" {
 		dst.Path.GeminiStream = src.Path.GeminiStream
+	}
+	if src.Path.Response != "" {
+		dst.Path.Response = src.Path.Response
 	}
 	if src.TokenCmd != "" {
 		dst.TokenCmd = src.TokenCmd
@@ -336,6 +345,8 @@ func (p *Provider) GetPath(reqType string, stream bool) string {
 		return p.Path.Message
 	case "gemini":
 		return p.Path.Gemini
+	case "response":
+		return p.Path.Response
 	default:
 		return ""
 	}

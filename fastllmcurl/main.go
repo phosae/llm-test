@@ -101,7 +101,7 @@ Usage:
 
 Required flags:
   -p <provider>    Provider name (novita, novita-dev, ppio, ppio-dev, or custom)
-  -t <type>        Request type: chat, message, or gemini
+  -t <type>        Request type: chat, message, gemini, or response
 
 Options:
   -c <case>        Case name (directory containing request body files)
@@ -117,6 +117,7 @@ Examples:
   fastllmcurl -p novita -c hello -t chat
   fastllmcurl -p ppio -c hello -t message -m claude-sonnet-4-20250514
   fastllmcurl -p novita -c hello -t gemini -m gemini-pro --stream
+  fastllmcurl -p novita -c hello -t response -m gpt-4o
   fastllmcurl -p novita -c hello -t chat --patch '{"temperature": 0.5}' -v
   fastllmcurl -p novita -t chat -d '{"model":"gpt-4o","messages":[...]}'
 

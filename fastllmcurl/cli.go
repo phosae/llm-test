@@ -80,8 +80,8 @@ func ParseArgs(args []string) (*Options, error) {
 	if opts.Type == "" {
 		return nil, fmt.Errorf("-t (type) is required")
 	}
-	if opts.Type != "chat" && opts.Type != "message" && opts.Type != "gemini" {
-		return nil, fmt.Errorf("-t must be one of: chat, message, gemini")
+	if opts.Type != "chat" && opts.Type != "message" && opts.Type != "gemini" && opts.Type != "response" {
+		return nil, fmt.Errorf("-t must be one of: chat, message, gemini, response")
 	}
 
 	return opts, nil

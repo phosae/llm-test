@@ -44,7 +44,7 @@ func generateBashCompletion(binName string) string {
             return 0
             ;;
         -t)
-            COMPREPLY=( $(compgen -W "chat message gemini" -- "$cur") )
+            COMPREPLY=( $(compgen -W "chat message gemini response" -- "$cur") )
             return 0
             ;;
         -m)
@@ -118,7 +118,7 @@ _%s() {
             ;;
         types)
             local -a types
-            types=(chat message gemini)
+            types=(chat message gemini response)
             _describe -t types 'type' types
             ;;
         models)
@@ -179,6 +179,7 @@ func listTypes() {
 	fmt.Println("chat")
 	fmt.Println("message")
 	fmt.Println("gemini")
+	fmt.Println("response")
 }
 
 func handleCompletionCommands(args []string) bool {
