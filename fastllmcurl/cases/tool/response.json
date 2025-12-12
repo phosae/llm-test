@@ -1,0 +1,22 @@
+{
+    "model": "gpt-4o",
+    "input": "What is the current temperature in Seattle, Washington?",
+    "tools": [
+        {
+            "type": "function",
+            "name": "get_weather",
+            "description": "Get the weather for a location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "location"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "model": "claude-sonnet-4-5",
+    "max_tokens": 1024,
+    "messages": [
+        {
+            "role": "user",
+            "content": "搜索并总结今天发生了什么?"
+        }
+    ],
+    "tools": [
+        {
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "max_uses": 3
+        }
+    ]
+}

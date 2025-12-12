@@ -59,11 +59,25 @@ fastllmcurl -p <provider> -t <type> [-c <case>] [options] [curl-args...]
 | `--patch` | JSON merge-patch |
 | `--dry-run` | Print curl command without executing |
 
-## Examples
+## Cheat Sheet
+
+Simple Examples
 
 ```bash
 fastllmcurl -p novita -c hello -t chat
-fastllmcurl -p ppio -c hello -t message -m claude-sonnet-4-20250514
+fastllmcurl -p ppio -c hello -t message -m pa/claude-sonnet-4-20250514
 fastllmcurl -p novita -c hello -t chat --dry-run
 fastllmcurl -p novita -t chat -d '{"model":"gpt-4o","messages":[...]}'
+```
+
+Combine with cURL args and Unix Pipe to do Cache Testing
+
+```shell
+fastllmcurl -p ppio -t gemini -m pa/gmn-2.5-fls-lt -c cache -i | tee >(grep -i 'x-fusion-provider') | sed -n '/^{/,$p' | jq '.usageMetadata'
+```
+
+Patch Gemini protocol's think budget
+
+```shell
+fastllmcurl -p ppio -t gemini -m pa/gemini-3-pro-preview -c cache --patch '{"generationConfig": {"thinkingConfig": {"thinkingBudget": 128}} }'
 ```

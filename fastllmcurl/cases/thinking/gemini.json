@@ -1,0 +1,25 @@
+{
+    "systemInstruction": {
+        "parts": [
+            {
+                "text": "你是一名哲学家"
+            }
+        ]
+    },
+    "contents": [
+        {
+            "role": "user",
+            "parts": [
+                {
+                    "text": "人生的意义是什么？"
+                }
+            ]
+        }
+    ],
+    "generationConfig": {
+        "thinkingConfig": {
+            "thinkingBudget": 2048,
+            "includeThoughts": true
+        }
+    }
+}

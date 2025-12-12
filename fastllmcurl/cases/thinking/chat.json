@@ -1,0 +1,15 @@
+{
+    "model": "gpt-4o",
+    "stream": false,
+    "messages": [
+        {
+            "role": "system",
+            "content": "你是一名哲学家"
+        },
+        {
+            "role": "user",
+            "content": "人生的意义是什么？"
+        }
+    ],
+    "reason_effort": "medium"
+}

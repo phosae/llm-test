@@ -1,0 +1,15 @@
+{
+    "model": "claude-sonnet-4-5",
+    "max_tokens": 16000,
+    "stream": true,
+    "thinking": {
+        "type": "enabled",
+        "budget_tokens": 4096
+    },
+    "messages": [
+        {
+            "role": "user",
+            "content": "What is 27 * 453?"
+        }
+    ]
+}

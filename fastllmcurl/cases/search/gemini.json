@@ -1,0 +1,17 @@
+{
+    "contents": [
+        {
+            "role": "user",
+            "parts": [
+                {
+                    "text": "中国今天发生了什么?"
+                }
+            ]
+        }
+    ],
+    "tools": [
+        {
+            "google_search": {}
+        }
+    ]
+}

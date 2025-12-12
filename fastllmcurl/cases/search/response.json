@@ -1,0 +1,9 @@
+{
+    "model": "gpt-5",
+    "tools": [
+        {
+            "type": "web_search"
+        }
+    ],
+    "input": "What happened today in China?"
+}

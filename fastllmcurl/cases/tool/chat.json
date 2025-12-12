@@ -1,0 +1,39 @@
+{
+    "model": "gpt-4o",
+    "messages": [
+        {
+            "role": "user",
+            "content": "What is the weather in Tokyo?"
+        }
+    ],
+    "tools": [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_weather",
+                "description": "Get the current weather for a specific city.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": "The name of the city, e.g., 'Tokyo'."
+                        },
+                        "unit": {
+                            "type": "string",
+                            "enum": [
+                                "celsius",
+                                "fahrenheit"
+                            ],
+                            "description": "Units the temperature will be returned in. Defaults to 'celsius' if not provided."
+                        }
+                    },
+                    "required": [
+                        "city"
+                    ]
+                }
+            }
+        }
+    ],
+    "tool_choice": "auto"
+}
