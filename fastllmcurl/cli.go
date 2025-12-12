@@ -16,6 +16,7 @@ type Options struct {
 	Stream   bool
 	Patch    string
 	CasesDir string
+	DryRun   bool
 	CurlArgs []string
 }
 
@@ -68,6 +69,9 @@ func ParseArgs(args []string) (*Options, error) {
 			}
 			opts.CasesDir = args[i+1]
 			i += 2
+		case "--dry-run":
+			opts.DryRun = true
+			i++
 		default:
 			opts.CurlArgs = append(opts.CurlArgs, args[i:]...)
 			i = len(args)
@@ -122,4 +126,59 @@ func ExecCurl(args []string) error {
 	}
 
 	return syscall.Exec(curlPath, args, os.Environ())
+}
+
+func PrintCurlCommand(args []string) {
+	var bodyJSON string
+	var headers []string
+	var otherArgs []string
+
+	for i := 0; i < len(args); i++ {
+		if args[i] == "-d" && i+1 < len(args) {
+			bodyJSON = args[i+1]
+			i++
+		} else if args[i] == "-H" && i+1 < len(args) {
+			headers = append(headers, args[i+1])
+			i++
+		} else {
+			otherArgs = append(otherArgs, args[i])
+		}
+	}
+
+	for i, arg := range otherArgs {
+		if i > 0 {
+			fmt.Print(" ")
+		}
+		if needsQuoting(arg) {
+			fmt.Printf("'%s'", arg)
+		} else {
+			fmt.Print(arg)
+		}
+	}
+
+	for _, h := range headers {
+		fmt.Printf(" \\\n  -H '%s'", h)
+	}
+
+	if bodyJSON != "" {
+		var prettyJSON []byte
+		var raw map[string]interface{}
+		if err := json.Unmarshal([]byte(bodyJSON), &raw); err == nil {
+			prettyJSON, _ = json.MarshalIndent(raw, "", "  ")
+		} else {
+			prettyJSON = []byte(bodyJSON)
+		}
+		fmt.Printf(" \\\n  -d @- <<'EOF'\n%s\nEOF\n", string(prettyJSON))
+	} else {
+		fmt.Println()
+	}
+}
+
+func needsQuoting(s string) bool {
+	for _, c := range s {
+		if c == ' ' || c == '"' || c == '\'' || c == '\\' || c == '{' || c == '}' || c == '[' || c == ']' || c == ':' || c == ',' {
+			return true
+		}
+	}
+	return false
 }
