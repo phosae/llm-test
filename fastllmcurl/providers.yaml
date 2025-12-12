@@ -1,0 +1,16 @@
+fusion:
+  base_url: http://localhost:8000/fusion/v1
+  path:
+    chat: "{model}/v1/chat/completions"
+    message: "{model}/v1/messages"
+    gemini: "{model}:generateContent"
+    gemini_stream: "{model}:streamGenerateContent"
+  fusion_header: false
+  auth_header: false
+google:
+  env:
+  token_cmd: "cat $HOME/.llm-jwt-tokens/vertexai_claude-sonnet-458106 | jq -r .access_token"
+  base_url: https://us-west-1-aiplatform.googleapis.com/v1/projects/claude-sonnet-458106/locations/us-west-1/publishers/google/models
+  path:
+    gemini: "{model}:generateContent"
+    gemini_stream: "{model}:streamGenerateContent?alt=sse"

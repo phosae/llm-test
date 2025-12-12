@@ -20,7 +20,9 @@ sudo cp fastllmcurl /usr/local/bin/
 ```bash
 git clone https://github.com/phosae/llm-test.git
 mkdir -p ~/.llm-test
-cp -r llm-test/fastllmcurl/cases ~/.llm-test/
+cp -r cases ~/.llm-test/
+cp providers.yaml ~/.llm-test/
+cp models.yaml ~/.llm-test/
 echo "your-api-key" > ~/.llm-test/novita
 ```
 
