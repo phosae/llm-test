@@ -26,14 +26,20 @@ func generateBashCompletion(binName string) string {
             return 0
             ;;
         -c)
-            local cases_dir="."
+            local cases_dir="./cases"
             for ((i=1; i<COMP_CWORD; i++)); do
                 if [[ "${COMP_WORDS[i]}" == "--cases-dir" ]]; then
                     cases_dir="${COMP_WORDS[i+1]}"
                     break
                 fi
             done
-            local cases=$(find "$cases_dir" -maxdepth 1 -type d ! -name "." ! -name ".." -exec basename {} \; 2>/dev/null)
+            local cases=""
+            if [[ -d "$cases_dir" ]]; then
+                cases=$(find "$cases_dir" -maxdepth 1 -type d ! -name "." ! -name ".." -exec basename {} \; 2>/dev/null)
+            fi
+            if [[ -d "$HOME/.llm-test/cases" ]]; then
+                cases="$cases $(find "$HOME/.llm-test/cases" -maxdepth 1 -type d ! -name "." ! -name ".." -exec basename {} \; 2>/dev/null)"
+            fi
             COMPREPLY=( $(compgen -W "$cases" -- "$cur") )
             return 0
             ;;
@@ -41,7 +47,21 @@ func generateBashCompletion(binName string) string {
             COMPREPLY=( $(compgen -W "chat message gemini" -- "$cur") )
             return 0
             ;;
-        -m|--patch|--cases-dir)
+        -m)
+            local provider=""
+            for ((i=1; i<COMP_CWORD; i++)); do
+                if [[ "${COMP_WORDS[i]}" == "-p" ]]; then
+                    provider="${COMP_WORDS[i+1]}"
+                    break
+                fi
+            done
+            if [[ -n "$provider" ]]; then
+                local models=$(%s __complete-models "$provider" 2>/dev/null)
+                COMPREPLY=( $(compgen -W "$models" -- "$cur") )
+            fi
+            return 0
+            ;;
+        --patch|--cases-dir)
             return 0
             ;;
     esac
@@ -54,7 +74,7 @@ func generateBashCompletion(binName string) string {
 }
 
 complete -F _%s %s
-`, binName, binName, binName)
+`, binName, binName, binName, binName)
 }
 
 func generateZshCompletion(binName string) string {
@@ -68,7 +88,7 @@ _%s() {
         '-p[Provider name]:provider:->providers' \
         '-c[Case name]:case:->cases' \
         '-t[Request type]:type:->types' \
-        '-m[Model override]:model:' \
+        '-m[Model override]:model:->models' \
         '--stream[Enable streaming]' \
         '--patch[JSON merge-patch]:patch:' \
         '--cases-dir[Cases directory]:directory:_files -/' \
@@ -87,8 +107,13 @@ _%s() {
             ;;
         cases)
             local -a cases
-            local cases_dir="."
-            cases=(${(f)"$(find "$cases_dir" -maxdepth 1 -type d ! -name "." ! -name ".." ! -name ".*" -exec basename {} \; 2>/dev/null)"})
+            local cases_dir="./cases"
+            if [[ -d "$cases_dir" ]]; then
+                cases=(${(f)"$(find "$cases_dir" -maxdepth 1 -type d ! -name "." ! -name ".." ! -name ".*" -exec basename {} \; 2>/dev/null)"})
+            fi
+            if [[ -d "$HOME/.llm-test/cases" ]]; then
+                cases+=(${(f)"$(find "$HOME/.llm-test/cases" -maxdepth 1 -type d ! -name "." ! -name ".." ! -name ".*" -exec basename {} \; 2>/dev/null)"})
+            fi
             _describe -t cases 'case' cases
             ;;
         types)
@@ -96,11 +121,19 @@ _%s() {
             types=(chat message gemini)
             _describe -t types 'type' types
             ;;
+        models)
+            local -a models
+            local provider="${opt_args[-p]}"
+            if [[ -n "$provider" ]]; then
+                models=(${(f)"$(%s __complete-models "$provider" 2>/dev/null)"})
+                _describe -t models 'model' models
+            fi
+            ;;
     esac
 }
 
 compdef _%s %s
-`, binName, binName, binName, binName)
+`, binName, binName, binName, binName, binName)
 }
 
 func getBinaryName() string {
@@ -176,6 +209,33 @@ func handleCompletionCommands(args []string) bool {
 		return true
 	case "__complete-types":
 		listTypes()
+		return true
+	case "__complete-models":
+		if len(args) < 2 {
+			return true
+		}
+		config, _ := LoadConfig()
+		if config != nil {
+			models := config.GetModels(args[1])
+			for _, m := range models {
+				fmt.Println(m)
+			}
+		}
+		return true
+	case "models":
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Usage: fastllmcurl models <provider>")
+			os.Exit(1)
+		}
+		config, err := LoadConfig()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+			os.Exit(1)
+		}
+		models := config.GetModels(args[1])
+		for _, m := range models {
+			fmt.Println(m)
+		}
 		return true
 	}
 

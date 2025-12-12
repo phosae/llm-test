@@ -23,10 +23,18 @@ type Provider struct {
 	FusionHeader bool       `yaml:"fusion_header"`
 	TokenCmd     string     `yaml:"token_cmd"`
 	AuthHeader   *bool      `yaml:"auth_header"`
+	Models       []string   `yaml:"models"`
+	ModelsRef    []ModelRef `yaml:"models_ref"`
+}
+
+type ModelRef struct {
+	Ref    string `yaml:"ref"`
+	Prefix string `yaml:"prefix"`
 }
 
 type Config struct {
-	Providers map[string]*Provider
+	Providers  map[string]*Provider
+	ModelLists map[string][]string `yaml:"model_lists"`
 }
 
 func boolPtr(b bool) *bool {
@@ -42,6 +50,20 @@ var builtinProviders = map[string]*Provider{
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
 		},
+		ModelsRef: []ModelRef{
+			{
+				Ref:    "openai",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "anthropic",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "google",
+				Prefix: "pa/",
+			},
+		},
 		FusionHeader: true,
 	},
 	"novita-dev": {
@@ -51,6 +73,20 @@ var builtinProviders = map[string]*Provider{
 			Message:      "anthropic/v1/messages",
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
+		},
+		ModelsRef: []ModelRef{
+			{
+				Ref:    "openai",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "anthropic",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "google",
+				Prefix: "pa/",
+			},
 		},
 		FusionHeader: true,
 	},
@@ -62,6 +98,20 @@ var builtinProviders = map[string]*Provider{
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
 		},
+		ModelsRef: []ModelRef{
+			{
+				Ref:    "openai",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "anthropic",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "google",
+				Prefix: "pa/",
+			},
+		},
 		FusionHeader: true,
 	},
 	"ppio-dev": {
@@ -71,6 +121,20 @@ var builtinProviders = map[string]*Provider{
 			Message:      "anthropic/v1/messages",
 			Gemini:       "gemini/v1/models/{model}:generateContent",
 			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
+		},
+		ModelsRef: []ModelRef{
+			{
+				Ref:    "openai",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "anthropic",
+				Prefix: "pa/",
+			},
+			{
+				Ref:    "google",
+				Prefix: "pa/",
+			},
 		},
 		FusionHeader: true,
 	},
@@ -82,6 +146,17 @@ var builtinProviders = map[string]*Provider{
 			Gemini:       "{model}:generateContent",
 			GeminiStream: "{model}:streamGenerateContent",
 		},
+		ModelsRef: []ModelRef{
+			{
+				Ref: "openai",
+			},
+			{
+				Ref: "anthropic",
+			},
+			{
+				Ref: "google",
+			},
+		},
 		FusionHeader: false,
 		AuthHeader:   boolPtr(false),
 	},
@@ -89,7 +164,8 @@ var builtinProviders = map[string]*Provider{
 
 func LoadConfig() (*Config, error) {
 	config := &Config{
-		Providers: make(map[string]*Provider),
+		Providers:  make(map[string]*Provider),
+		ModelLists: make(map[string][]string),
 	}
 
 	for name, p := range builtinProviders {
@@ -102,25 +178,29 @@ func LoadConfig() (*Config, error) {
 		return config, nil
 	}
 
-	configPath := filepath.Join(homeDir, ".fastllmcurl", "providers.yaml")
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return config, nil
+	providersPath := filepath.Join(homeDir, ".llm-test", "providers.yaml")
+	if data, err := os.ReadFile(providersPath); err == nil {
+		var userProviders map[string]*Provider
+		if err := yaml.Unmarshal(data, &userProviders); err != nil {
+			return nil, fmt.Errorf("failed to parse providers.yaml: %w", err)
 		}
-		return nil, fmt.Errorf("failed to read config: %w", err)
+		for name, p := range userProviders {
+			if existing, ok := config.Providers[name]; ok {
+				mergeProvider(existing, p)
+			} else {
+				config.Providers[name] = p
+			}
+		}
 	}
 
-	var userProviders map[string]*Provider
-	if err := yaml.Unmarshal(data, &userProviders); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
-	}
-
-	for name, p := range userProviders {
-		if existing, ok := config.Providers[name]; ok {
-			mergeProvider(existing, p)
-		} else {
-			config.Providers[name] = p
+	modelsPath := filepath.Join(homeDir, ".llm-test", "models.yaml")
+	if data, err := os.ReadFile(modelsPath); err == nil {
+		var modelLists map[string][]string
+		if err := yaml.Unmarshal(data, &modelLists); err != nil {
+			return nil, fmt.Errorf("failed to parse models.yaml: %w", err)
+		}
+		for name, models := range modelLists {
+			config.ModelLists[name] = models
 		}
 	}
 
@@ -149,7 +229,62 @@ func mergeProvider(dst, src *Provider) {
 	if src.AuthHeader != nil {
 		dst.AuthHeader = src.AuthHeader
 	}
+	if len(src.Models) > 0 {
+		dst.Models = src.Models
+	}
+	if len(src.ModelsRef) > 0 {
+		dst.ModelsRef = src.ModelsRef
+	}
 	dst.FusionHeader = src.FusionHeader
+}
+
+func (c *Config) GetModels(providerName string) []string {
+	return c.getModelsWithVisited(providerName, make(map[string]bool))
+}
+
+func (c *Config) getModelsWithVisited(providerName string, visited map[string]bool) []string {
+	if visited[providerName] {
+		return nil
+	}
+	visited[providerName] = true
+
+	provider, ok := c.Providers[providerName]
+	if !ok {
+		return nil
+	}
+
+	var result []string
+
+	if len(provider.Models) > 0 {
+		result = append(result, provider.Models...)
+	}
+
+	if m, ok := c.ModelLists[providerName]; ok {
+		result = append(result, m...)
+	}
+
+	for _, ref := range provider.ModelsRef {
+		var models []string
+		if _, ok := c.Providers[ref.Ref]; ok {
+			models = c.getModelsWithVisited(ref.Ref, visited)
+		} else if m, ok := c.ModelLists[ref.Ref]; ok {
+			models = m
+		}
+		result = append(result, applyPrefix(models, ref.Prefix)...)
+	}
+
+	return result
+}
+
+func applyPrefix(models []string, prefix string) []string {
+	if prefix == "" || len(models) == 0 {
+		return models
+	}
+	result := make([]string, len(models))
+	for i, m := range models {
+		result[i] = prefix + m
+	}
+	return result
 }
 
 func (p *Provider) GetToken(providerName string) (string, error) {
