@@ -1,0 +1,18 @@
+{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "What do you see in this image?"
+          },
+          {
+            "file_data": {
+              "file_uri": "https://images.nationalgeographic.org/image/upload/t_edhub_resource_key_image/v1638886301/EducationHub/photos/lightning-bolts.jpg",
+              "mime_type": "image/jpeg"
+            }
+          }
+        ]
+      }
+    ]
+  }
