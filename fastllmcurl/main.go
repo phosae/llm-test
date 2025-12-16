@@ -92,6 +92,15 @@ func main() {
 		return
 	}
 
+	if opts.Display {
+		display := NewStreamDisplay(opts.Type)
+		if err := display.Run(curlArgs); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if err := ExecCurl(curlArgs); err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing curl: %v\n", err)
 		os.Exit(1)
@@ -112,6 +121,7 @@ Options:
   -c <case>        Case name (directory containing request body files)
   -m <model>       Override model in request body
   --stream         Enable streaming mode
+  --display        Display streamed content as readable text (requires --stream)
   --patch <json>   JSON merge-patch to apply to request body
   --cases-dir      Directory containing cases (default: current directory)
   --dry-run        Print curl command without executing

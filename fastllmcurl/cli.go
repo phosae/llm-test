@@ -14,6 +14,7 @@ type Options struct {
 	Type     string
 	Model    string
 	Stream   bool
+	Display  bool
 	Patch    string
 	CasesDir string
 	DryRun   bool
@@ -57,6 +58,9 @@ func ParseArgs(args []string) (*Options, error) {
 		case "--stream":
 			opts.Stream = true
 			i++
+		case "--display":
+			opts.Display = true
+			i++
 		case "--patch":
 			if i+1 >= len(args) {
 				return nil, fmt.Errorf("--patch requires a value")
@@ -86,6 +90,9 @@ func ParseArgs(args []string) (*Options, error) {
 	}
 	if opts.Type != "chat" && opts.Type != "message" && opts.Type != "gemini" && opts.Type != "response" {
 		return nil, fmt.Errorf("-t must be one of: chat, message, gemini, response")
+	}
+	if opts.Display && !opts.Stream {
+		return nil, fmt.Errorf("--display requires --stream")
 	}
 
 	return opts, nil

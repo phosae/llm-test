@@ -56,6 +56,7 @@ fastllmcurl -p <provider> -t <type> [-c <case>] [options] [curl-args...]
 | `-c` | Case name |
 | `-m` | Model override |
 | `--stream` | Enable streaming |
+| `--display` | Display streamed content as readable text (requires --stream) |
 | `--patch` | JSON merge-patch |
 | `--dry-run` | Print curl command without executing |
 
@@ -80,4 +81,14 @@ Patch Gemini protocol's think budget
 
 ```shell
 fastllmcurl -p ppio -t gemini -m pa/gemini-3-pro-preview -c cache --patch '{"generationConfig": {"thinkingConfig": {"thinkingBudget": 128}} }'
+```
+
+Stream with Display Mode (Use cURL's -v to show headers, -i will be ignored by the SSE Parser)
+
+```bash
+# Stream and display content as readable text
+fastllmcurl -p novita -c hello -t chat --stream --display -v
+
+# Claude with thinking output
+fastllmcurl -p novita -c thinking -t message --stream --display
 ```
