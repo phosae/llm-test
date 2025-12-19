@@ -1,0 +1,19 @@
+{
+    "model": "gpt-5",
+    "input": [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_file",
+                    "filename": "2024ltr.pdf",
+                    "file_data": "data:application/pdf;base64,$(curl -s https://www.berkshirehathaway.com/letters/2024ltr.pdf | base64 -w0)"
+                },
+                {
+                    "type": "input_text",
+                    "text": "describe this file"
+                }
+            ]
+        }
+    ]
+}

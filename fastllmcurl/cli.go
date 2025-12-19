@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -99,6 +100,10 @@ func ParseArgs(args []string) (*Options, error) {
 }
 
 func BuildCurlCommand(url string, headers map[string]string, body map[string]interface{}, extraArgs []string) ([]string, error) {
+	return BuildCurlCommandWithRawBody(url, headers, body, "", extraArgs)
+}
+
+func BuildCurlCommandWithRawBody(url string, headers map[string]string, body map[string]interface{}, rawBody string, extraArgs []string) ([]string, error) {
 	args := []string{"curl", "-X", "POST", url}
 
 	for k, v := range headers {
@@ -113,12 +118,16 @@ func BuildCurlCommand(url string, headers map[string]string, body map[string]int
 		}
 	}
 
-	if !hasBody && len(body) > 0 {
-		bodyJSON, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal body: %w", err)
+	if !hasBody {
+		if rawBody != "" {
+			args = append(args, "-d", rawBody)
+		} else if len(body) > 0 {
+			bodyJSON, err := json.Marshal(body)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal body: %w", err)
+			}
+			args = append(args, "-d", string(bodyJSON))
 		}
-		args = append(args, "-d", string(bodyJSON))
 	}
 
 	args = append(args, extraArgs...)
@@ -127,12 +136,51 @@ func BuildCurlCommand(url string, headers map[string]string, body map[string]int
 }
 
 func ExecCurl(args []string) error {
-	curlPath, err := exec.LookPath("curl")
-	if err != nil {
-		return fmt.Errorf("curl not found: %w", err)
+	return ExecCurlViaBash(args, false)
+}
+
+func ExecCurlViaBash(args []string, needsShellExpansion bool) error {
+	if !needsShellExpansion {
+		curlPath, err := exec.LookPath("curl")
+		if err != nil {
+			return fmt.Errorf("curl not found: %w", err)
+		}
+		return syscall.Exec(curlPath, args, os.Environ())
 	}
 
-	return syscall.Exec(curlPath, args, os.Environ())
+	bashPath, err := exec.LookPath("bash")
+	if err != nil {
+		return fmt.Errorf("bash not found: %w", err)
+	}
+
+	cmdStr := buildBashCommand(args)
+	return syscall.Exec(bashPath, []string{"bash", "-c", cmdStr}, os.Environ())
+}
+
+func buildBashCommand(args []string) string {
+	var parts []string
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "-d" && i+1 < len(args) {
+			parts = append(parts, "-d", fmt.Sprintf("\"$(cat <<FASTLLMCURL_EOF\n%s\nFASTLLMCURL_EOF\n)\"", args[i+1]))
+			i++
+		} else {
+			parts = append(parts, shellQuote(arg))
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+func shellQuote(s string) string {
+	if s == "" {
+		return "''"
+	}
+	for _, c := range s {
+		if c == ' ' || c == '"' || c == '\'' || c == '\\' || c == '$' || c == '`' || c == '!' || c == '{' || c == '}' || c == '[' || c == ']' || c == '(' || c == ')' || c == '<' || c == '>' || c == '|' || c == '&' || c == ';' || c == '*' || c == '?' || c == '~' || c == '#' {
+			return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
+		}
+	}
+	return s
 }
 
 func PrintCurlCommand(args []string) {
@@ -169,13 +217,17 @@ func PrintCurlCommand(args []string) {
 
 	if bodyJSON != "" {
 		var prettyJSON []byte
-		var raw map[string]interface{}
-		if err := json.Unmarshal([]byte(bodyJSON), &raw); err == nil {
-			prettyJSON, _ = json.MarshalIndent(raw, "", "  ")
-		} else {
+		if strings.Contains(bodyJSON, "$(") {
 			prettyJSON = []byte(bodyJSON)
+		} else {
+			var raw map[string]interface{}
+			if err := json.Unmarshal([]byte(bodyJSON), &raw); err == nil {
+				prettyJSON, _ = json.MarshalIndent(raw, "", "  ")
+			} else {
+				prettyJSON = []byte(bodyJSON)
+			}
 		}
-		fmt.Printf(" \\\n  -d @- <<'EOF'\n%s\nEOF\n", string(prettyJSON))
+		fmt.Printf(" \\\n  -d @- << EOF\n%s\nEOF\n", string(prettyJSON))
 	} else {
 		fmt.Println()
 	}

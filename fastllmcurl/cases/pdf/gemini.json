@@ -1,0 +1,23 @@
+{
+    "contents": [
+        {
+            "role": "user",
+            "parts": [
+                {
+                    "inlineData": {
+                        "mimeType": "application/pdf",
+                        "data": "$(curl -s https://www.berkshirehathaway.com/letters/2024ltr.pdf | base64 | tr -d '\n')"
+                    }
+                },
+                {
+                    "text": "describe this pdf"
+                }
+            ]
+        }
+    ],
+    "generationConfig": {
+        "thinkingConfig": {
+            "thinkingBudget": 512
+        }
+    }
+}

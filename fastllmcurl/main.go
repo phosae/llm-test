@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -44,7 +45,17 @@ func main() {
 	}
 
 	var body map[string]interface{}
+	var rawBody string
+	needsShellExpansion := false
+
 	if opts.Case != "" {
+		rawBody, err = LoadCaseBodyRaw(opts.CasesDir, opts.Case, opts.Type)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading case: %v\n", err)
+			os.Exit(1)
+		}
+		needsShellExpansion = strings.Contains(rawBody, "$(")
+
 		body, err = LoadCaseBody(opts.CasesDir, opts.Case, opts.Type)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error loading case: %v\n", err)
@@ -61,6 +72,16 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error applying patch: %v\n", err)
 		os.Exit(1)
+	}
+
+	if needsShellExpansion {
+		rawBody = ApplyModelOverrideRaw(rawBody, opts.Model)
+		rawBody = ApplyStreamOverrideRaw(rawBody, opts.Stream)
+		rawBody, err = ApplyJSONPatchRaw(rawBody, opts.Patch)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error applying patch: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	model := GetModelFromBody(body)
@@ -81,7 +102,12 @@ func main() {
 		headers["X-Fusion-Beta"] = "with-provider-detail-2026-07-11"
 	}
 
-	curlArgs, err := BuildCurlCommand(url, headers, body, opts.CurlArgs)
+	var curlArgs []string
+	if needsShellExpansion {
+		curlArgs, err = BuildCurlCommandWithRawBody(url, headers, nil, rawBody, opts.CurlArgs)
+	} else {
+		curlArgs, err = BuildCurlCommand(url, headers, body, opts.CurlArgs)
+	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error building curl command: %v\n", err)
 		os.Exit(1)
@@ -93,7 +119,7 @@ func main() {
 	}
 
 	if opts.Display {
-		display := NewStreamDisplay(opts.Type)
+		display := NewStreamDisplay(opts.Type, needsShellExpansion)
 		if err := display.Run(curlArgs); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -101,7 +127,7 @@ func main() {
 		return
 	}
 
-	if err := ExecCurl(curlArgs); err != nil {
+	if err := ExecCurlViaBash(curlArgs, needsShellExpansion); err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing curl: %v\n", err)
 		os.Exit(1)
 	}

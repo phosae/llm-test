@@ -11,16 +11,23 @@ import (
 )
 
 type StreamDisplay struct {
-	reqType    string
-	inThinking bool
+	reqType             string
+	inThinking          bool
+	needsShellExpansion bool
 }
 
-func NewStreamDisplay(reqType string) *StreamDisplay {
-	return &StreamDisplay{reqType: reqType}
+func NewStreamDisplay(reqType string, needsShellExpansion bool) *StreamDisplay {
+	return &StreamDisplay{reqType: reqType, needsShellExpansion: needsShellExpansion}
 }
 
 func (s *StreamDisplay) Run(args []string) error {
-	cmd := exec.Command(args[0], args[1:]...)
+	var cmd *exec.Cmd
+	if s.needsShellExpansion {
+		cmdStr := buildBashCommand(args)
+		cmd = exec.Command("bash", "-c", cmdStr)
+	} else {
+		cmd = exec.Command(args[0], args[1:]...)
+	}
 	cmd.Stderr = os.Stderr
 
 	stdout, err := cmd.StdoutPipe()
