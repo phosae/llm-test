@@ -216,18 +216,23 @@ func PrintCurlCommand(args []string) {
 	}
 
 	if bodyJSON != "" {
-		var prettyJSON []byte
-		if strings.Contains(bodyJSON, "$(") {
-			prettyJSON = []byte(bodyJSON)
+		// If body is a file reference (@/path/to/file), preserve the format
+		if strings.HasPrefix(bodyJSON, "@") {
+			fmt.Printf(" \\\n  -d '%s'\n", bodyJSON)
 		} else {
-			var raw map[string]interface{}
-			if err := json.Unmarshal([]byte(bodyJSON), &raw); err == nil {
-				prettyJSON, _ = json.MarshalIndent(raw, "", "  ")
-			} else {
+			var prettyJSON []byte
+			if strings.Contains(bodyJSON, "$(") {
 				prettyJSON = []byte(bodyJSON)
+			} else {
+				var raw map[string]interface{}
+				if err := json.Unmarshal([]byte(bodyJSON), &raw); err == nil {
+					prettyJSON, _ = json.MarshalIndent(raw, "", "  ")
+				} else {
+					prettyJSON = []byte(bodyJSON)
+				}
 			}
+			fmt.Printf(" \\\n  -d @- << EOF\n%s\nEOF\n", string(prettyJSON))
 		}
-		fmt.Printf(" \\\n  -d @- << EOF\n%s\nEOF\n", string(prettyJSON))
 	} else {
 		fmt.Println()
 	}
