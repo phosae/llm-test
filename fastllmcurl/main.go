@@ -137,11 +137,11 @@ func printUsage() {
 	fmt.Println(`fastllmcurl - LLM API CLI Tool
 
 Usage:
-  fastllmcurl -p <provider> -t <type> [-c <case>] [options] [curl-args...]
+  fastllmcurl -p <provider> -t <type|path> [-c <case>] [options] [curl-args...]
 
 Required flags:
   -p <provider>    Provider name (novita, novita-dev, ppio, ppio-dev, or custom)
-  -t <type>        Request type: chat, message, gemini, or response
+  -t <type|path>   Request type (chat, message, gemini, response) or custom path
 
 Options:
   -c <case>        Case name (directory containing request body files)
@@ -162,6 +162,7 @@ Examples:
   fastllmcurl -p novita -c hello -t response -m gpt-4o
   fastllmcurl -p novita -c hello -t chat --patch '{"temperature": 0.5}' -v
   fastllmcurl -p novita -t chat -d '{"model":"gpt-4o","messages":[...]}'
+  fastllmcurl -p ppio-dev -t v3/tavily/search -d '{"query":"hello"}'
 
 Shell Completion:
   fastllmcurl completion bash  # output bash completion script

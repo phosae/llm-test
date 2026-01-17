@@ -7,7 +7,7 @@ A Go-based CLI wrapper around curl that simplifies LLM API calls with built-in p
 | Flag | Description | Required |
 |------|-------------|----------|
 | `-p` | Provider name | Yes |
-| `-t` | Type: `chat`, `message`, `gemini`, `response` | Yes |
+| `-t` | Type or path (see below) | Yes |
 | `-c` | Case name (optional if `-d` provided) | No |
 | `-m` | Model (overrides body) | No |
 | `--stream` | Stream mode (overrides body) | No |
@@ -111,15 +111,35 @@ Automatically added:
 | `Content-Type` | `application/json` |
 | `X-Fusion-Beta` | `with-provider-detail-2026-07-11` (when `fusion_header: true`) |
 
+## Type/Path Resolution (`-t`)
+
+The `-t` flag accepts either a named type or a literal path:
+
+1. **Named type**: If `-t` value exists in provider's `path` config, use the mapped path
+2. **Literal path**: Otherwise, use `-t` value directly as the API path
+
+Standard types: `chat`, `message`, `gemini`, `response`
+
+Custom named paths can be added to provider config:
+
+```yaml
+ppio-dev:
+  path:
+    chat: "openai/v1/chat/completions"
+    tavily: "v3/travily/search"
+    perplexity: "v3/perplexity/chat/completions"
+```
+
 ## URL Construction
 
 1. Load case body from `{cases_dir}/{case}/{type}.json`
 2. Apply `-m model` → set `model` field in body
 3. Apply `--stream` → set `stream: true` in body
 4. Apply `--patch` JSON merge-patch
-5. Select path template:
-   - If `-t gemini` and `--stream`: use `gemini_stream`
-   - Otherwise: use `{type}` (chat/message/gemini/response)
+5. Select path:
+   - If `-t` exists in provider's path config → use mapped path
+   - If `-t gemini` and `--stream` → use `gemini_stream`
+   - Otherwise → use `-t` as literal path
 6. Replace `{model}` placeholder in path with model from body
 7. Build final URL: `{base_url}/{path}`
 
@@ -176,6 +196,24 @@ fastllmcurl -p ppio -c hello -t message --connect-timeout 30
 
 ```bash
 fastllmcurl -p novita -t chat -d '{"model":"gpt-4o","messages":[{"role":"user","content":"Hello"}]}'
+```
+
+### Custom Path (Literal)
+
+```bash
+# Use literal path for APIs not in config
+fastllmcurl -p ppio-dev -t v3/travily/search -d '{"query":"who is Leo Messi?"}'
+fastllmcurl -p ppio-dev -t /v3/perplexity/chat/completions -d '{"model":"llama-3.1-sonar-small-128k-online","messages":[...]}'
+```
+
+### Custom Path (Named)
+
+```bash
+# After adding to providers.yaml:
+#   ppio-dev:
+#     path:
+#       tavily: "v3/travily/search"
+fastllmcurl -p ppio-dev -t tavily -d '{"query":"who is Leo Messi?"}'
 ```
 
 ## File Locations Summary

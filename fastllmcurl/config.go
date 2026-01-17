@@ -10,22 +10,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type PathConfig struct {
-	Chat         string `yaml:"chat"`
-	Message      string `yaml:"message"`
-	Gemini       string `yaml:"gemini"`
-	GeminiStream string `yaml:"gemini_stream"`
-	Response     string `yaml:"response"`
-}
-
 type Provider struct {
-	BaseURL      string     `yaml:"base_url"`
-	Path         PathConfig `yaml:"path"`
-	FusionHeader bool       `yaml:"fusion_header"`
-	TokenCmd     string     `yaml:"token_cmd"`
-	AuthHeader   *bool      `yaml:"auth_header"`
-	Models       []string   `yaml:"models"`
-	ModelsRef    []ModelRef `yaml:"models_ref"`
+	BaseURL      string            `yaml:"base_url"`
+	Path         map[string]string `yaml:"path"`
+	FusionHeader bool              `yaml:"fusion_header"`
+	TokenCmd     string            `yaml:"token_cmd"`
+	AuthHeader   *bool             `yaml:"auth_header"`
+	Models       []string          `yaml:"models"`
+	ModelsRef    []ModelRef        `yaml:"models_ref"`
 }
 
 type ModelRef struct {
@@ -45,12 +37,12 @@ func boolPtr(b bool) *bool {
 var builtinProviders = map[string]*Provider{
 	"novita": {
 		BaseURL: "https://api.novita.ai",
-		Path: PathConfig{
-			Chat:         "openai/v1/chat/completions",
-			Message:      "anthropic/v1/messages",
-			Gemini:       "gemini/v1/models/{model}:generateContent",
-			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
-			Response:     "openai/v1/responses",
+		Path: map[string]string{
+			"chat":          "openai/v1/chat/completions",
+			"message":       "anthropic/v1/messages",
+			"gemini":        "gemini/v1/models/{model}:generateContent",
+			"gemini_stream": "gemini/v1/models/{model}:streamGenerateContent",
+			"response":      "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -70,12 +62,12 @@ var builtinProviders = map[string]*Provider{
 	},
 	"novita-dev": {
 		BaseURL: "https://dev-api.novita.ai",
-		Path: PathConfig{
-			Chat:         "openai/v1/chat/completions",
-			Message:      "anthropic/v1/messages",
-			Gemini:       "gemini/v1/models/{model}:generateContent",
-			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
-			Response:     "openai/v1/responses",
+		Path: map[string]string{
+			"chat":          "openai/v1/chat/completions",
+			"message":       "anthropic/v1/messages",
+			"gemini":        "gemini/v1/models/{model}:generateContent",
+			"gemini_stream": "gemini/v1/models/{model}:streamGenerateContent",
+			"response":      "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -95,12 +87,12 @@ var builtinProviders = map[string]*Provider{
 	},
 	"ppio": {
 		BaseURL: "https://api.ppio.com",
-		Path: PathConfig{
-			Chat:         "openai/v1/chat/completions",
-			Message:      "anthropic/v1/messages",
-			Gemini:       "gemini/v1/models/{model}:generateContent",
-			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
-			Response:     "openai/v1/responses",
+		Path: map[string]string{
+			"chat":          "openai/v1/chat/completions",
+			"message":       "anthropic/v1/messages",
+			"gemini":        "gemini/v1/models/{model}:generateContent",
+			"gemini_stream": "gemini/v1/models/{model}:streamGenerateContent",
+			"response":      "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -120,12 +112,12 @@ var builtinProviders = map[string]*Provider{
 	},
 	"ppio-dev": {
 		BaseURL: "https://dev-api.ppinfra.com",
-		Path: PathConfig{
-			Chat:         "openai/v1/chat/completions",
-			Message:      "anthropic/v1/messages",
-			Gemini:       "gemini/v1/models/{model}:generateContent",
-			GeminiStream: "gemini/v1/models/{model}:streamGenerateContent",
-			Response:     "openai/v1/responses",
+		Path: map[string]string{
+			"chat":          "openai/v1/chat/completions",
+			"message":       "anthropic/v1/messages",
+			"gemini":        "gemini/v1/models/{model}:generateContent",
+			"gemini_stream": "gemini/v1/models/{model}:streamGenerateContent",
+			"response":      "openai/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -145,12 +137,12 @@ var builtinProviders = map[string]*Provider{
 	},
 	"local-fusion": {
 		BaseURL: "http://localhost:8000/fusion/v1",
-		Path: PathConfig{
-			Chat:         "{model}/v1/chat/completions",
-			Message:      "{model}/v1/messages",
-			Gemini:       "{model}:generateContent",
-			GeminiStream: "{model}:streamGenerateContent",
-			Response:     "{model}/v1/responses",
+		Path: map[string]string{
+			"chat":          "{model}/v1/chat/completions",
+			"message":       "{model}/v1/messages",
+			"gemini":        "{model}:generateContent",
+			"gemini_stream": "{model}:streamGenerateContent",
+			"response":      "{model}/v1/responses",
 		},
 		ModelsRef: []ModelRef{
 			{
@@ -217,20 +209,13 @@ func mergeProvider(dst, src *Provider) {
 	if src.BaseURL != "" {
 		dst.BaseURL = src.BaseURL
 	}
-	if src.Path.Chat != "" {
-		dst.Path.Chat = src.Path.Chat
-	}
-	if src.Path.Message != "" {
-		dst.Path.Message = src.Path.Message
-	}
-	if src.Path.Gemini != "" {
-		dst.Path.Gemini = src.Path.Gemini
-	}
-	if src.Path.GeminiStream != "" {
-		dst.Path.GeminiStream = src.Path.GeminiStream
-	}
-	if src.Path.Response != "" {
-		dst.Path.Response = src.Path.Response
+	if len(src.Path) > 0 {
+		if dst.Path == nil {
+			dst.Path = make(map[string]string)
+		}
+		for k, v := range src.Path {
+			dst.Path[k] = v
+		}
 	}
 	if src.TokenCmd != "" {
 		dst.TokenCmd = src.TokenCmd
@@ -335,21 +320,20 @@ func (p *Provider) GetToken(providerName string) (string, error) {
 }
 
 func (p *Provider) GetPath(reqType string, stream bool) string {
+	// Handle gemini streaming special case
 	if reqType == "gemini" && stream {
-		return p.Path.GeminiStream
+		if path, ok := p.Path["gemini_stream"]; ok {
+			return path
+		}
 	}
-	switch reqType {
-	case "chat":
-		return p.Path.Chat
-	case "message":
-		return p.Path.Message
-	case "gemini":
-		return p.Path.Gemini
-	case "response":
-		return p.Path.Response
-	default:
-		return ""
+
+	// Check if reqType exists in path config
+	if path, ok := p.Path[reqType]; ok {
+		return path
 	}
+
+	// Use reqType as literal path (strip leading slash)
+	return strings.TrimPrefix(reqType, "/")
 }
 
 func (p *Provider) BuildURL(reqType string, stream bool, model string) string {

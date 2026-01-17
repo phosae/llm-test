@@ -44,7 +44,15 @@ func generateBashCompletion(binName string) string {
             return 0
             ;;
         -t)
-            COMPREPLY=( $(compgen -W "chat message gemini response" -- "$cur") )
+            local provider=""
+            for ((i=1; i<COMP_CWORD; i++)); do
+                if [[ "${COMP_WORDS[i]}" == "-p" ]]; then
+                    provider="${COMP_WORDS[i+1]}"
+                    break
+                fi
+            done
+            local types=$(%s __complete-types "$provider" 2>/dev/null)
+            COMPREPLY=( $(compgen -W "$types" -- "$cur") )
             return 0
             ;;
         -m)
@@ -118,7 +126,8 @@ _%s() {
             ;;
         types)
             local -a types
-            types=(chat message gemini response)
+            local provider="${opt_args[-p]}"
+            types=(${(f)"$(%s __complete-types "$provider" 2>/dev/null)"})
             _describe -t types 'type' types
             ;;
         models)
@@ -209,7 +218,31 @@ func handleCompletionCommands(args []string) bool {
 		listCases(casesDir)
 		return true
 	case "__complete-types":
-		listTypes()
+		config, _ := LoadConfig()
+		if config == nil {
+			listTypes()
+			return true
+		}
+
+		// Always include standard types
+		types := []string{"chat", "message", "gemini", "response"}
+
+		// If provider specified, add its custom paths
+		if len(args) > 1 && args[1] != "" {
+			if provider, ok := config.Providers[args[1]]; ok {
+				for name := range provider.Path {
+					// Skip standard types and gemini_stream
+					if name != "chat" && name != "message" && name != "gemini" &&
+						name != "response" && name != "gemini_stream" {
+						types = append(types, name)
+					}
+				}
+			}
+		}
+
+		for _, t := range types {
+			fmt.Println(t)
+		}
 		return true
 	case "__complete-models":
 		if len(args) < 2 {

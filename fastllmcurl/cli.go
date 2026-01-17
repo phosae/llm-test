@@ -87,10 +87,7 @@ func ParseArgs(args []string) (*Options, error) {
 		return nil, fmt.Errorf("-p (provider) is required")
 	}
 	if opts.Type == "" {
-		return nil, fmt.Errorf("-t (type) is required")
-	}
-	if opts.Type != "chat" && opts.Type != "message" && opts.Type != "gemini" && opts.Type != "response" {
-		return nil, fmt.Errorf("-t must be one of: chat, message, gemini, response")
+		return nil, fmt.Errorf("-t (type or path) is required")
 	}
 	if opts.Display && !opts.Stream {
 		return nil, fmt.Errorf("--display requires --stream")
